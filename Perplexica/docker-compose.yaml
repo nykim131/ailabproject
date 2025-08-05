@@ -1,0 +1,49 @@
+services:
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    ports:
+      - 4000:8080
+    networks:
+      - perplexica-network
+    restart: unless-stopped
+
+  app:
+    image: itzcrazykns1337/perplexica:main
+    build:
+      context: .
+      dockerfile: app.dockerfile
+    environment:
+      - SEARXNG_API_URL=http://searxng:8080
+      - DATA_DIR=/home/perplexica
+    ports:
+      - 3000:3000
+    networks:
+      - perplexica-network
+    volumes:
+      - backend-dbstore:/home/perplexica/data
+      - uploads:/home/perplexica/uploads
+      - ./config.toml:/home/perplexica/config.toml
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:latest
+    ports: 
+      - "5432:5432"
+    volumes:
+      - ./pgvector_data:/var/lib/postgresql/data
+      # - ./init_pgvector.sql:/docker-entrypoint-initdb.d/init_pgvector.sql  # pgvector 안 쓸 거면 주석처리
+    environment:
+      - POSTGRES_USER=nykim
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=mydb
+      
+
+
+networks:
+  perplexica-network:
+
+volumes:
+  backend-dbstore:
+  uploads:

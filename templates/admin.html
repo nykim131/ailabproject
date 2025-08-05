@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 페이지 - 퀴즈 커뮤니티</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-emoji">🔧</span>
+                    <span>관리자 페이지</span>
+                </div>
+                <nav class="nav">
+                    <a href="/" class="nav-link">홈으로</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 -->
+    <main class="main">
+        <div class="container">
+            <div class="admin-content">
+                <h1 class="page-title">퀴즈 검색 관리</h1>
+                <p class="page-description">퀴즈 데이터를 검색하고 업데이트합니다.</p>
+
+                <!-- 현재 quiz_list 상태 -->
+                <section class="status-section">
+                    <h2 class="section-title">현재 quiz_list 상태</h2>
+                    <div class="status-card">
+                        <div class="status-content" id="quizListStatus">
+                            <div class="loading">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                로딩 중...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 검색 실행 -->
+                <section class="search-section">
+                    <h2 class="section-title">퀴즈 검색 실행</h2>
+                    
+                    <!-- 오늘 날짜 검색 -->
+                    <div class="search-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-calendar-day"></i>
+                                오늘 날짜로 검색
+                            </h3>
+                            <p class="card-description">
+                                모든 앱의 quiz_date를 오늘 날짜로 업데이트하고 검색을 실행합니다.
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <div class="date-display">
+                                <span class="date-label">검색 날짜:</span>
+                                <span class="date-value" id="todayDate"></span>
+                            </div>
+                            <button class="btn btn-primary btn-large" onclick="searchToday()">
+                                <i class="fas fa-search"></i>
+                                오늘 날짜로 검색 실행
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 지정 날짜 검색 -->
+                    <div class="search-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-calendar-alt"></i>
+                                지정 날짜로 검색
+                            </h3>
+                            <p class="card-description">
+                                원하는 날짜를 선택하여 quiz_date를 업데이트하고 검색을 실행합니다.
+                            </p>
+                        </div>
+                        <div class="card-body">
+                            <div class="date-input-group">
+                                <label for="targetDate" class="date-label">검색할 날짜:</label>
+                                <input type="date" id="targetDate" class="date-input">
+                            </div>
+                            <button class="btn btn-secondary btn-large" onclick="searchByDate()">
+                                <i class="fas fa-search"></i>
+                                지정 날짜로 검색 실행
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 검색 결과 -->
+                <section class="result-section" id="resultSection" style="display: none;">
+                    <h2 class="section-title">검색 결과</h2>
+                    <div class="result-card">
+                        <div class="result-content" id="resultContent"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- 로딩 오버레이 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>퀴즈 검색 중...</p>
+            <p class="loading-detail">잠시만 기다려주세요</p>
+        </div>
+    </div>
+
+    <!-- 토스트 메시지 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            // 오늘 날짜 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('todayDate').textContent = today;
+            document.getElementById('targetDate').value = today;
+            
+            // quiz_list 상태 로드
+            loadQuizListStatus();
+        });
+
+        // quiz_list 상태 로드
+        async function loadQuizListStatus() {
+            try {
+                const response = await fetch('/admin/quiz-list');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayQuizListStatus(data.data);
+                } else {
+                    showToast('quiz_list 상태를 불러오는데 실패했습니다: ' + data.message, 'error');
+                }
+            } catch (error) {
+                showToast('서버 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        // quiz_list 상태 표시
+        function displayQuizListStatus(quizList) {
+            const statusContent = document.getElementById('quizListStatus');
+            
+            if (quizList.length === 0) {
+                statusContent.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>quiz_list 테이블에 데이터가 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="quiz-list-table">';
+            html += '<table>';
+            html += '<thead><tr><th>앱 이름</th><th>퀴즈 날짜</th></tr></thead>';
+            html += '<tbody>';
+            
+            quizList.forEach(item => {
+                html += `<tr>
+                    <td class="app-name">${item.app_name}</td>
+                    <td class="quiz-date">${item.quiz_date}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            statusContent.innerHTML = html;
+        }
+
+        // 오늘 날짜로 검색
+        async function searchToday() {
+            await executeSearch('today');
+        }
+
+        // 지정 날짜로 검색
+        async function searchByDate() {
+            const targetDate = document.getElementById('targetDate').value;
+            if (!targetDate) {
+                showToast('날짜를 선택해주세요.', 'error');
+                return;
+            }
+            await executeSearch('date', targetDate);
+        }
+
+        // 검색 실행
+        async function executeSearch(type, date = null) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const resultSection = document.getElementById('resultSection');
+            
+            try {
+                // 로딩 표시
+                loadingOverlay.style.display = 'flex';
+                
+                const requestData = { type: type };
+                if (date) {
+                    requestData.date = date;
+                }
+                
+                const response = await fetch('/admin/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                // 로딩 숨기기
+                loadingOverlay.style.display = 'none';
+                
+                // 결과 표시
+                displaySearchResult(data);
+                resultSection.style.display = 'block';
+                
+                // quiz_list 상태 다시 로드
+                loadQuizListStatus();
+                
+                if (data.success) {
+                    showToast('퀴즈 검색이 완료되었습니다!', 'success');
+                } else {
+                    showToast('검색 실패: ' + data.message, 'error');
+                }
+                
+            } catch (error) {
+                loadingOverlay.style.display = 'none';
+                showToast('서버 오류가 발생했습니다: ' + error.message, 'error');
+            }
+        }
+
+        // 검색 결과 표시
+        function displaySearchResult(data) {
+            const resultContent = document.getElementById('resultContent');
+            
+            let html = '<div class="result-header">';
+            html += `<div class="result-status ${data.success ? 'success' : 'error'}">`;
+            html += `<i class="fas fa-${data.success ? 'check-circle' : 'times-circle'}"></i>`;
+            html += `<span>${data.message}</span>`;
+            html += '</div></div>';
+            
+            if (data.output) {
+                html += '<div class="result-output">';
+                html += '<h4>실행 로그:</h4>';
+                html += `<pre>${data.output}</pre>`;
+                html += '</div>';
+            }
+            
+            if (data.error) {
+                html += '<div class="result-error">';
+                html += '<h4>오류 메시지:</h4>';
+                html += `<pre>${data.error}</pre>`;
+                html += '</div>';
+            }
+            
+            resultContent.innerHTML = html;
+        }
+
+        // 토스트 메시지 표시
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            color: #2d3748;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* 헤더 */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #dc2626;
+        }
+
+        .logo-emoji {
+            font-size: 28px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: #64748b;
+            font-weight: 500;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover {
+            color: #dc2626;
+            background: rgba(220, 38, 38, 0.1);
+        }
+
+        /* 메인 컨텐츠 */
+        .main {
+            padding: 120px 0 80px;
+        }
+
+        .admin-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .page-description {
+            font-size: 18px;
+            color: #64748b;
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: #dc2626;
+            border-radius: 2px;
+        }
+
+        /* 상태 섹션 */
+        .status-section {
+            margin-bottom: 48px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .quiz-list-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .quiz-list-table th,
+        .quiz-list-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .quiz-list-table th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .quiz-list-table .app-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .quiz-list-table .quiz-date {
+            color: #64748b;
+            font-family: monospace;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #f59e0b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .loading i {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        /* 검색 섹션 */
+        .search-section {
+            margin-bottom: 48px;
+        }
+
+        .search-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-description {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .date-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .date-input-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .date-label {
+            font-weight: 600;
+            color: #374151;
+            min-width: 100px;
+        }
+
+        .date-value {
+            font-family: monospace;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .date-input {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: monospace;
+            transition: all 0.2s ease;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+        }
+
+        /* 버튼 */
+        .btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        .btn-primary {
+            background: #dc2626;
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: #b91c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn-secondary {
+            background: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 16px;
+            border-radius: 12px;
+        }
+
+        /* 결과 섹션 */
+        .result-section {
+            margin-bottom: 48px;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .result-header {
+            margin-bottom: 24px;
+        }
+
+        .result-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .result-status.success {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .result-status.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .result-output,
+        .result-error {
+            margin-top: 24px;
+        }
+
+        .result-output h4,
+        .result-error h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #374151;
+        }
+
+        .result-output pre,
+        .result-error pre {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border: 1px solid #e2e8f0;
+        }
+
+        .result-error pre {
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        /* 로딩 오버레이 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 48px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #dc2626;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-content p {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .loading-detail {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        /* 토스트 */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            z-index: 2000;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(60px);
+            max-width: 400px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .toast.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .toast.info {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #93c5fd;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .admin-content {
+                padding: 0;
+            }
+
+            .page-title {
+                font-size: 28px;
+            }
+
+            .search-card {
+                padding: 24px;
+            }
+
+            .date-input-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .date-label {
+                min-width: auto;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .toast {
+                right: 16px;
+                left: 16px;
+                bottom: 16px;
+            }
+        }
+    </style>
+</body>
+</html> 

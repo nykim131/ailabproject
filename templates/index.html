@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>퀴즈파인더 - 모든 퀴즈 정답을 한곳에서</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Jua:wght@400&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 헤더 -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-emoji">🔍</span>
+                    <span>퀴즈파인더</span>
+                </div>
+                <nav class="nav">
+                    <a href="#home" class="nav-link">홈</a>
+                    <a href="#quiz" class="nav-link">오늘의 정답</a>
+                    <a href="#archive" class="nav-link">아카이브</a>
+                    <a href="#about" class="nav-link">소개</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 섹션 -->
+    <main class="main">
+        <!-- 앱별 컬러/로고 매핑 -->
+        {% set app_styles = {
+            'KB Pay': {'color': '#FFE066', 'logo': '/static/image/kbpay.webp', 'class': 'kb'},
+            '비트버니': {'color': '#DDA0DD', 'logo': '/static/image/bitbunny.webp', 'class': 'bitbunny'},
+            '오퀴즈': {'color': '#FFB6C1', 'logo': '/static/image/oquiz.webp', 'class': 'oquiz'},
+            '캐시워크': {'color': '#0EA5E9', 'logo': '/static/image/cashwalk.webp', 'class': 'cashwork'}
+        } %}
+
+        <!-- 히어로 섹션 -->
+        <section id="home" class="hero">
+            <div class="floating-shapes">
+                <div class="shape shape-1">✨</div>
+                <div class="shape shape-2">💫</div>
+                <div class="shape shape-3">🌟</div>
+            </div>
+            <div class="container">
+                <div class="hero-content">
+                    <h1 class="hero-title">
+                        모든 퀴즈 정답을<br>
+                        <span class="highlight">한곳에서</span>
+                    </h1>
+                    <p class="hero-description">
+                        KB Pay, 비트버니, 오퀴즈 등 다양한 퀴즈 앱의<br>
+                        최신 정답을 실시간으로 업데이트합니다
+                    </p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary btn-large" onclick="scrollToSection('quiz')">
+                            정답 확인하기
+                        </button>
+                        <button class="btn btn-outline btn-large" onclick="scrollToSection('about')">
+                            자세히 알아보기
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="supported-apps">
+                        <h3 class="apps-title">지원하는 앱</h3>
+                        <div class="apps-grid">
+                            {% for app_name, style in app_styles.items() %}
+                            <div class="app-item">
+                                <img src="{{ style.logo }}" alt="{{ app_name }}" class="app-logo-hero">
+                                <span class="app-name-hero">{{ app_name }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 오늘의 정답 섹션 -->
+        <section id="quiz" class="quiz-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">오늘의 퀴즈 정답</h2>
+                    <p class="section-description">매일 업데이트되는 최신 퀴즈 정답을 확인하세요</p>
+                    {% if latest_update_date %}
+                    <div class="update-info">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>{{ latest_update_date }}의 퀴즈를 모두 확인했어요!</span>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="quiz-grid">
+                    {% for quiz in quiz_data %}
+                    {% set style = app_styles.get(quiz.app_name, {'color': '#f8f9fa', 'logo': '/static/image/default.webp', 'class': 'default'}) %}
+                    <div class="news-card">
+                        <div class="card-header">
+                            <div class="app-info">
+                                <img src="{{ style.logo }}" alt="{{ quiz.app_name }}" class="app-logo">
+                                <div class="app-details">
+                                    <h3 class="app-name">{{ quiz.app_name }}</h3>
+                                    <span class="quiz-date">{{ quiz.published_date or quiz.quiz_date }}</span>
+                                </div>
+                            </div>
+                            <div class="app-badge {{ style.class }}">{{ quiz.app_name }}</div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <h4 class="quiz-title">{{ quiz.title }}</h4>
+                            <p class="quiz-description">
+                                {{ quiz.content[:100] }}{% if quiz.content and quiz.content|length > 100 %}...{% endif %}
+                            </p>
+                            
+                            <div class="answer-section">
+                                <div class="answer-label">정답</div>
+                                <div class="answer-value">{{ quiz.answer }}</div>
+                                <button class="copy-btn" onclick="copyToClipboard('{{ quiz.answer }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <button class="btn btn-outline btn-sm" onclick="window.open('{{ quiz.url }}', '_blank')">
+                                <i class="fas fa-link"></i>
+                                원문 보기
+                            </button>
+                            <button class="btn btn-ghost btn-sm" onclick="shareQuiz('{{ quiz.title }}', '{{ quiz.url }}')">
+                                <i class="fas fa-share"></i>
+                                공유하기
+                            </button>
+                            <div class="like-display">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="like-count">{{ quiz.likes or 0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 아카이브 섹션 -->
+        <section id="archive" class="archive-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">퀴즈 아카이브</h2>
+                    <p class="section-description">지난 퀴즈들을 앱별로 모아보세요</p>
+                </div>
+                
+                <!-- 탭 네비게이션 -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="all">
+                        <i class="fas fa-th-large"></i>
+                        전체
+                    </button>
+                    {% for app_name in archive_data|map(attribute='app_name')|unique %}
+                    <button class="tab-btn" data-tab="{{ app_name.lower().replace(' ', '') }}">
+                        <i class="fas fa-mobile-alt"></i>
+                        {{ app_name }}
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <div class="quiz-grid">
+                    {% for quiz in archive_data %}
+                    {% set style = app_styles.get(quiz.app_name, {'color': '#f8f9fa', 'logo': '/static/image/default.webp', 'class': 'default'}) %}
+                    <div class="quiz-card" data-app="{{ quiz.app_name.lower().replace(' ', '') }}">
+                        <div class="card-header">
+                            <div class="app-info">
+                                <img src="{{ style.logo }}" alt="{{ quiz.app_name }}" class="app-logo">
+                                <div class="app-details">
+                                    <h3 class="app-name">{{ quiz.app_name }}</h3>
+                                    <span class="quiz-date">{{ quiz.published_date or quiz.quiz_date }}</span>
+                                </div>
+                            </div>
+                            <div class="app-badge {{ style.class }}">{{ quiz.app_name }}</div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <h4 class="quiz-title">{{ quiz.title }}</h4>
+                            <p class="quiz-description">
+                                {{ quiz.content[:100] }}{% if quiz.content and quiz.content|length > 100 %}...{% endif %}
+                            </p>
+                            
+                            <div class="answer-section">
+                                <div class="answer-label">정답</div>
+                                <div class="answer-value">{{ quiz.answer }}</div>
+                                <button class="copy-btn" onclick="copyToClipboard('{{ quiz.answer }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="card-footer">
+                            <button class="btn btn-outline btn-sm" onclick="window.open('{{ quiz.url }}', '_blank')">
+                                <i class="fas fa-link"></i>
+                                원문 보기
+                            </button>
+                            <button class="btn btn-ghost btn-sm" onclick="shareQuiz('{{ quiz.title }}', '{{ quiz.url }}')">
+                                <i class="fas fa-share"></i>
+                                공유하기
+                            </button>
+                            <button class="btn btn-like btn-sm" onclick="addLikeQuiz{{ quiz.id }}(this)" data-quiz-id="{{ quiz.id }}">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span class="like-count">{{ quiz.likes or 0 }}</span>
+                            </button>
+                            <script>
+                            function addLikeQuiz{{ quiz.id }}(button) {
+                                button.disabled = true;
+                                
+                                fetch('/api/like/{{ quiz.id }}', {
+                                    method: 'POST',
+                                    headers: {'Content-Type': 'application/json'}
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        button.querySelector('.like-count').textContent = data.likes_count;
+                                        
+                                        // 애니메이션 효과
+                                        button.style.transform = 'scale(1.1)';
+                                        setTimeout(() => {
+                                            button.style.transform = 'scale(1)';
+                                        }, 200);
+                                        
+                                        // 오늘의 퀴즈 섹션 업데이트 (있다면)
+                                        if (typeof updateTodayQuizSection === 'function') {
+                                            updateTodayQuizSection();
+                                        }
+                                        
+                                        // 성공 피드백
+                                        console.log('따봉 완료! 새로운 수:', data.likes_count);
+                                    } else {
+                                        alert('오류: ' + (data.error || '알 수 없는 오류'));
+                                    }
+                                })
+                                .catch(error => {
+                                    alert('네트워크 오류: ' + error.message);
+                                })
+                                .finally(() => {
+                                    setTimeout(() => {
+                                        button.disabled = false;
+                                    }, 1000);
+                                });
+                            }
+                            </script>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- 소개 섹션 -->
+        <section id="about" class="about-section">
+            <div class="container">
+                <div class="about-content">
+                    <div class="about-text">
+                        <h2 class="about-title">
+                            퀴즈 정답을 찾는<br>
+                            <span class="highlight">가장 쉬운 방법</span>
+                        </h2>
+                        <p class="about-description">
+                            다양한 퀴즈 앱의 정답을 매일 업데이트하여<br>
+                            한곳에서 편리하게 확인할 수 있습니다
+                        </p>
+                        <div class="feature-list">
+                            <div class="feature-item">
+                                <div class="feature-icon">⏰</div>
+                                <div>
+                                    <h4>실시간 업데이트</h4>
+                                    <p>매일 최신 퀴즈 정답을 실시간으로 업데이트</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">📱</div>
+                                <div>
+                                    <h4>다양한 앱 지원</h4>
+                                    <p>KB Pay, 비트버니, 오퀴즈 등 인기 앱 지원</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon">🔍</div>
+                                <div>
+                                    <h4>쉬운 검색</h4>
+                                    <p>앱별로 원하는 정답을 쉽게 찾기</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="about-visual">
+                        <div class="stats-card">
+                            <div class="stat-item">
+                                <div class="stat-number">{{ archive_data|length }}</div>
+                                <div class="stat-label">전체 퀴즈</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ quiz_data|length }}</div>
+                                <div class="stat-label">오늘의 정답</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">{{ quiz_data|map(attribute='app_name')|unique|list|length }}</div>
+                                <div class="stat-label">지원 앱</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <span class="logo-emoji">🔍</span>
+                        <span>퀴즈파인더</span>
+                    </div>
+                    <p>모든 퀴즈 정답을 한곳에서</p>
+                </div>
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>서비스</h4>
+                        <a href="#quiz">오늘의 정답</a>
+                        <a href="#archive">아카이브</a>
+                        <a href="#about">소개</a>
+                    </div>
+                    <div class="link-group">
+                        <h4>지원</h4>
+                        <a href="#">고객센터</a>
+                        <a href="#">FAQ</a>
+                        <a href="#">문의하기</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 퀴즈파인더. 김누리 최필진 김나윤 제작</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    // 스크롤 함수
+    function scrollToSection(sectionId) {
+        document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 탭 기능
+    function showTab(appName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.tab-btn[data-tab="' + appName + '"]').classList.add('active');
+        
+        // 아카이브 섹션의 quiz-card만 필터링 (news-card는 제외)
+        document.querySelectorAll('.archive-section .quiz-card').forEach(card => {
+            card.style.display = appName === 'all' || card.dataset.app === appName ? 'block' : 'none';
+        });
+    }
+
+    // 복사 기능
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text);
+        showToast('정답이 복사되었습니다!');
+    }
+
+    // 공유 기능
+    function shareQuiz(title, url) {
+        if (navigator.share) {
+            navigator.share({ title: title, url: url });
+        } else {
+            copyToClipboard(url);
+            showToast('URL이 복사되었습니다!');
+        }
+    }
+
+    // 토스트 메시지
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 100);
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => document.body.removeChild(toast), 300);
+        }, 2000);
+    }
+
+    // 오늘의 퀴즈 섹션 업데이트
+    function updateTodayQuizSection() {
+        fetch('/api/today-quiz')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const quizGrid = document.querySelector('.quiz-section .quiz-grid');
+                    if (quizGrid) {
+                        // 새로운 HTML 생성
+                        let newHTML = '';
+                        data.data.forEach(quiz => {
+                                                         // 앱별 스타일 설정
+                             const appStyles = {
+                                 'KB Pay': { color: '#FFE066', logo: '/static/image/kbpay.webp', class: 'kb' },
+                                 '비트버니': { color: '#DDA0DD', logo: '/static/image/bitbunny.webp', class: 'bitbunny' },
+                                 '오퀴즈': { color: '#FFB6C1', logo: '/static/image/oquiz.webp', class: 'oquiz' },
+                                 '캐시워크': { color: '#0EA5E9', logo: '/static/image/cashwalk.webp', class: 'cashwork' }
+                             };
+                            const style = appStyles[quiz.app_name] || { color: '#f8f9fa', logo: '/static/image/default.webp', class: 'default' };
+                            
+                            const content = quiz.content || '';
+                            const shortContent = content.length > 100 ? content.substring(0, 100) + '...' : content;
+                            // escape 처리 제거 - 템플릿 리터럴에서 직접 사용
+                            
+                            newHTML += `
+                                <div class="news-card">
+                                    <div class="card-header">
+                                        <div class="app-info">
+                                            <img src="${style.logo}" alt="${quiz.app_name}" class="app-logo">
+                                            <div class="app-details">
+                                                <h3 class="app-name">${quiz.app_name}</h3>
+                                                <span class="quiz-date">${quiz.published_date || quiz.quiz_date}</span>
+                                            </div>
+                                        </div>
+                                        <div class="app-badge ${style.class}">${quiz.app_name}</div>
+                                    </div>
+                                    
+                                    <div class="card-body">
+                                        <h4 class="quiz-title">${quiz.title}</h4>
+                                        <p class="quiz-description">
+                                            ${shortContent}
+                                        </p>
+                                        
+                                        <div class="answer-section">
+                                            <div class="answer-label">정답</div>
+                                            <div class="answer-value">${quiz.answer}</div>
+                                            <button class="copy-btn" onclick="copyToClipboard('${quiz.answer}')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card-footer">
+                                        <button class="btn btn-outline btn-sm" onclick="window.open('${quiz.url}', '_blank')">
+                                            <i class="fas fa-link"></i>
+                                            원문 보기
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm" onclick="shareQuiz('${quiz.title}', '${quiz.url}')">
+                                            <i class="fas fa-share"></i>
+                                            공유하기
+                                        </button>
+                                        <div class="like-display">
+                                            <i class="fas fa-thumbs-up"></i>
+                                            <span class="like-count">${quiz.likes || 0}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        quizGrid.innerHTML = newHTML;
+                    }
+                } else {
+                    console.error('오늘의 퀴즈 업데이트 실패:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('오늘의 퀴즈 업데이트 오류:', error);
+            });
+    }
+
+    // 이벤트 리스너
+    document.addEventListener('DOMContentLoaded', function() {
+        // 탭 버튼 이벤트
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                showTab(this.dataset.tab);
+            });
+        });
+
+        // 스크롤 네비게이션
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = this.getAttribute('href').substring(1);
+                scrollToSection(target);
+            });
+        });
+    });
+    </script>
+
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+        line-height: 1.6;
+        color: #2d3748;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* 떠다니는 도형들 - 더 부드럽게 */
+    .floating-shapes {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .shape {
+        position: absolute;
+        font-size: 24px;
+        opacity: 0.6;
+        animation: float 15s ease-in-out infinite;
+    }
+
+    .shape-1 { top: 20%; left: 10%; animation-delay: 0s; }
+    .shape-2 { top: 40%; right: 15%; animation-delay: 5s; }
+    .shape-3 { top: 70%; left: 20%; animation-delay: 10s; }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); opacity: 0.6; }
+        50% { transform: translateY(-20px); opacity: 0.8; }
+    }
+
+    /* 헤더 */
+    .header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 0;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 24px;
+        font-weight: 700;
+        color: #4f46e5;
+        letter-spacing: -0.5px;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .logo-emoji {
+        font-size: 28px;
+    }
+
+    .nav {
+        display: flex;
+        gap: 24px;
+    }
+
+    .nav-link {
+        text-decoration: none;
+        color: #64748b;
+        font-weight: 500;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        padding: 8px 16px;
+        border-radius: 8px;
+        position: relative;
+    }
+
+    .nav-link:hover {
+        color: #4f46e5;
+        background: rgba(79, 70, 229, 0.1);
+    }
+
+    /* 버튼 */
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: -0.3px;
+        font-family: 'Pretendard', sans-serif;
+    }
+
+    .btn-primary {
+        background: #4f46e5;
+        color: white;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: #4338ca;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-outline {
+        background: white;
+        color: #4f46e5;
+        border: 2px solid #4f46e5;
+    }
+
+    .btn-outline:hover {
+        background: #4f46e5;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-ghost {
+        background: rgba(255, 255, 255, 0.8);
+        color: #64748b;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .btn-ghost:hover {
+        background: rgba(248, 250, 252, 0.9);
+        color: #4f46e5;
+        border-color: #4f46e5;
+    }
+
+    .btn-large {
+        padding: 16px 32px;
+        font-size: 16px;
+        border-radius: 12px;
+    }
+
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 13px;
+        border-radius: 6px;
+    }
+
+    /* 히어로 섹션 */
+    .hero {
+        padding: 120px 0 80px;
+        background: linear-gradient(135deg, #fef7ff 0%, #f3e8ff 30%, #e0e7ff 70%, #dbeafe 100%);
+        color: #2d3748;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-content {
+        text-align: center;
+        margin-bottom: 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-title {
+        font-size: 48px;
+        font-weight: 800;
+        margin-bottom: 24px;
+        line-height: 1.1;
+        color: #1e293b;
+        letter-spacing: -1px;
+        font-family: 'Jua', cursive;
+    }
+
+    .highlight {
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-description {
+        font-size: 18px;
+        margin-bottom: 32px;
+        color: #64748b;
+        font-weight: 500;
+        line-height: 1.6;
+    }
+
+    .hero-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 60px;
+    }
+
+    .hero-visual {
+        display: flex;
+        justify-content: center;
+        position: relative;
+        z-index: 1;
+    }
+
+    .supported-apps {
+        text-align: center;
+    }
+
+    .apps-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #4f46e5;
+        margin-bottom: 32px;
+        letter-spacing: -0.5px;
+    }
+
+    .apps-grid {
+        display: flex;
+        gap: 24px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .app-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 16px;
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        min-width: 120px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .app-item:hover {
+        transform: translateY(-8px);
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .app-logo-hero {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        object-fit: contain;
+        background: white;
+        padding: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .app-item:hover .app-logo-hero {
+        transform: scale(1.1);
+    }
+
+    .app-name-hero {
+        font-size: 14px;
+        font-weight: 600;
+        color: #334155;
+        letter-spacing: -0.3px;
+    }
+
+    /* 섹션 공통 */
+    .quiz-section, .archive-section, .about-section {
+        padding: 80px 0;
+        position: relative;
+    }
+
+    .quiz-section {
+        background: linear-gradient(135deg, #fefce8 0%, #f0f9ff 100%);
+    }
+
+    .archive-section {
+        background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    }
+
+    .about-section {
+        background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 64px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .section-title {
+        font-size: 36px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        color: #1e293b;
+        letter-spacing: -1px;
+        font-family: 'Jua', cursive;
+    }
+
+    .section-description {
+        font-size: 18px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* 업데이트 정보 스타일 */
+    .update-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(79, 70, 229, 0.1);
+        color: #4f46e5;
+        padding: 12px 20px;
+        border-radius: 25px;
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 16px;
+        border: 1px solid rgba(79, 70, 229, 0.2);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+    }
+
+    .update-info:hover {
+        background: rgba(79, 70, 229, 0.15);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+    }
+
+    .update-info i {
+        font-size: 16px;
+    }
+
+    /* 퀴즈 그리드 */
+    .quiz-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 32px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .quiz-card, .news-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        backdrop-filter: blur(10px);
+    }
+
+    .quiz-card:hover, .news-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+        background: rgba(255, 255, 255, 0.95);
+    }
+
+    .quiz-card .card-header, .news-card .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+    }
+
+    .app-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .app-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        object-fit: contain;
+        transition: all 0.3s ease;
+    }
+
+    .quiz-card:hover .app-logo, .news-card:hover .app-logo {
+        transform: scale(1.05);
+    }
+
+    .app-name {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #1e293b;
+        letter-spacing: -0.5px;
+    }
+
+    .quiz-date {
+        font-size: 14px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .app-badge {
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+        font-family: 'Pretendard', sans-serif;
+    }
+
+    .app-badge.kb { background: #f59e0b; }
+    .app-badge.bitbunny { background: #a855f7; }
+    .app-badge.oquiz { background: #ec4899; }
+    .app-badge.cashwork { background: #0284C7; }
+    .app-badge.default { background: #64748b; }
+
+    .quiz-title {
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: #1e293b;
+        line-height: 1.4;
+        letter-spacing: -0.5px;
+    }
+
+    .quiz-description {
+        color: #64748b;
+        margin-bottom: 24px;
+        line-height: 1.6;
+        font-size: 15px;
+    }
+
+    .answer-section {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 1px solid #bbf7d0;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .answer-label {
+        font-weight: 600;
+        color: #15803d;
+        font-size: 14px;
+    }
+
+    .answer-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+        flex: 1;
+        letter-spacing: -0.3px;
+    }
+
+    .copy-btn {
+        background: #22c55e;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 14px;
+    }
+
+    .copy-btn:hover {
+        background: #16a34a;
+        transform: translateY(-2px);
+    }
+
+    .card-footer {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    /* 탭 네비게이션 */
+    .tab-navigation {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 48px;
+        justify-content: center;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+
+    .tab-btn {
+        padding: 12px 20px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.8);
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        backdrop-filter: blur(10px);
+        letter-spacing: -0.3px;
+        font-family: 'Pretendard', sans-serif;
+    }
+
+    .tab-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    .tab-btn:hover:not(.active) {
+        border-color: #4f46e5;
+        color: #4f46e5;
+        background: rgba(79, 70, 229, 0.1);
+    }
+
+    /* 소개 섹션 */
+    .about-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+        align-items: center;
+    }
+
+    .about-title {
+        font-size: 36px;
+        font-weight: 800;
+        margin-bottom: 24px;
+        line-height: 1.2;
+        color: #1e293b;
+        letter-spacing: -1px;
+        font-family: 'Jua', cursive;
+    }
+
+    .about-description {
+        font-size: 18px;
+        color: #64748b;
+        margin-bottom: 40px;
+        line-height: 1.6;
+        font-weight: 500;
+    }
+
+    .feature-list {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .feature-item:hover {
+        background: rgba(255, 255, 255, 0.9);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    .feature-icon {
+        font-size: 32px;
+    }
+
+    .feature-item h4 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: #1e293b;
+        letter-spacing: -0.5px;
+    }
+
+    .feature-item p {
+        color: #64748b;
+        line-height: 1.6;
+        font-size: 15px;
+    }
+
+    .stats-card {
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        backdrop-filter: blur(10px);
+    }
+
+    .stat-item {
+        text-align: center;
+        padding: 20px;
+        background: rgba(248, 250, 252, 0.8);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .stat-item:hover {
+        background: rgba(241, 245, 249, 0.9);
+        transform: translateY(-2px);
+    }
+
+    .stat-number {
+        font-size: 48px;
+        font-weight: 800;
+        color: #4f46e5;
+        display: block;
+        margin-bottom: 8px;
+        letter-spacing: -1px;
+        font-family: 'Jua', cursive;
+    }
+
+    .stat-label {
+        font-size: 16px;
+        color: #64748b;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+    }
+
+    /* 푸터 */
+    .footer {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        color: white;
+        padding: 64px 0 32px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .footer-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 48px;
+        margin-bottom: 32px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .footer-brand .logo {
+        color: white;
+        margin-bottom: 16px;
+        font-size: 24px;
+    }
+
+    .footer-brand p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 16px;
+        font-weight: 500;
+    }
+
+    .footer-links {
+        display: flex;
+        gap: 48px;
+    }
+
+    .link-group h4 {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: white;
+        letter-spacing: -0.5px;
+    }
+
+    .link-group a {
+        display: block;
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+        font-size: 15px;
+        font-weight: 500;
+    }
+
+    .link-group a:hover {
+        color: #a78bfa;
+        transform: translateX(4px);
+    }
+
+    .footer-bottom {
+        text-align: center;
+        padding-top: 24px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* 토스트 */
+    .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(60px);
+        background: #4f46e5;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        z-index: 2000;
+        transition: all 0.3s ease;
+        opacity: 0;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
+        font-family: 'Pretendard', sans-serif;
+    }
+
+    .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+        .container {
+            padding: 0 16px;
+        }
+
+        .hero-title {
+            font-size: 36px;
+        }
+
+        .hero-description {
+            font-size: 16px;
+        }
+
+        .hero-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .apps-grid {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .quiz-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .about-content {
+            grid-template-columns: 1fr;
+            gap: 32px;
+        }
+
+        .footer-content {
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .footer-links {
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .nav {
+            display: none;
+        }
+
+        .tab-navigation {
+            overflow-x: auto;
+            justify-content: flex-start;
+            padding-bottom: 8px;
+        }
+
+        .tab-btn {
+            white-space: nowrap;
+        }
+
+        .floating-shapes {
+            display: none;
+        }
+    }
+    </style>
+</body>
+</html> 
